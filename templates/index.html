@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Home | Smart Warehouse Allocation System{% endblock %}
+
+{% block content %}
+<div class="hero-section mb-4">
+    <div class="row align-items-center">
+        <div class="col-lg-7">
+            <span class="badge bg-primary-subtle text-primary-emphasis mb-3 px-3 py-2">
+                <i class="bi bi-cpu"></i> AI-Assisted Warehouse Optimization
+            </span>
+            <h1 class="display-6 fw-bold mb-3">Smart Warehouse Storage <span class="text-gradient">Allocation System</span></h1>
+            <p class="lead text-secondary mb-4">
+                Upload your incoming product dataset, configure your warehouse racks, and let
+                six different allocation algorithms compete to find the most efficient storage
+                layout &mdash; complete with utilization analytics and AI-driven recommendations.
+            </p>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ url_for('upload') }}" class="btn btn-primary btn-lg px-4">
+                    <i class="bi bi-cloud-upload"></i> Upload Dataset
+                </a>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-lg px-4">
+                    <i class="bi bi-speedometer2"></i> View Dashboard
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-5 d-none d-lg-block text-center">
+            <i class="bi bi-boxes hero-icon"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Stat cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-database"></i></div>
+            <div>
+                <div class="stat-value">{{ dataset_count }}</div>
+                <div class="stat-label">Datasets Uploaded</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-diagram-3"></i></div>
+            <div>
+                <div class="stat-value">{{ run_count }}</div>
+                <div class="stat-label">Allocation Runs</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-icon bg-warning-subtle text-warning"><i class="bi bi-grid-3x3-gap"></i></div>
+            <div>
+                <div class="stat-value">{{ rack_count }}</div>
+                <div class="stat-label">Active Racks</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-percent"></i></div>
+            <div>
+                <div class="stat-value">{{ "%.1f"|format(latest_run.space_utilization) if latest_run else "0.0" }}%</div>
+                <div class="stat-label">Latest Utilization</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card app-card h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-info-circle text-primary"></i> About This Project</h5>
+                <p class="text-secondary">
+                    This system assists warehouse operators in allocating storage space for
+                    incoming products. Upload a plain-text dataset describing each product's
+                    dimensions, weight, priority, storage requirements and quantity, then choose
+                    from six allocation strategies to see how differently each one performs.
+                </p>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-6">
+                        <div class="feature-item"><i class="bi bi-1-circle-fill text-primary"></i> Upload &amp; validate product dataset</div>
+                        <div class="feature-item"><i class="bi bi-2-circle-fill text-primary"></i> Configure warehouse racks</div>
+                        <div class="feature-item"><i class="bi bi-3-circle-fill text-primary"></i> Choose allocation algorithm</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="feature-item"><i class="bi bi-4-circle-fill text-primary"></i> Review optimization statistics</div>
+                        <div class="feature-item"><i class="bi bi-5-circle-fill text-primary"></i> Compare algorithms side-by-side</div>
+                        <div class="feature-item"><i class="bi bi-6-circle-fill text-primary"></i> Export CSV / PDF reports</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card app-card h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-list-check text-primary"></i> Available Algorithms</h5>
+                <ul class="list-group list-group-flush">
+                    {% for key, name in algorithms.items() %}
+                    <li class="list-group-item d-flex align-items-center gap-2 bg-transparent">
+                        <i class="bi bi-check2-circle text-success"></i> {{ name }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,324 @@
+/* =========================================================================
+   Smart Warehouse Storage Allocation System — Stylesheet
+   Design language: "warehouse operations console" — graphite/steel-blue
+   base with an amber safety-label accent, shelf-divider structural motifs.
+   ========================================================================= */
+
+:root {
+    --ink: #16233a;
+    --steel-deep: #1e3a5f;
+    --steel: #2c5282;
+    --steel-light: #ebf1fa;
+    --amber: #f59e0b;
+    --teal: #0d9488;
+    --danger: #e53e3e;
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --border: #e2e8f0;
+    --text-secondary: #5b6b82;
+    --sidebar-width: 250px;
+}
+
+[data-bs-theme="dark"] {
+    --ink: #eef2f9;
+    --steel-deep: #93c5fd;
+    --steel: #60a5fa;
+    --steel-light: #16233a;
+    --bg: #0f172a;
+    --surface: #17233b;
+    --border: #2a3a56;
+    --text-secondary: #9aa9c2;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    height: 100%;
+}
+
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    transition: background 0.25s ease, color 0.25s ease;
+}
+
+h1, h2, h3, h4, h5, h6, .card-title {
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+}
+
+.text-gradient {
+    background: linear-gradient(90deg, var(--steel-deep), var(--amber));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+a { text-decoration: none; }
+
+/* ---------------------------------------------------------------------
+   App shell / layout
+   --------------------------------------------------------------------- */
+.app-shell {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: var(--sidebar-width);
+    flex-shrink: 0;
+    background: linear-gradient(180deg, var(--steel-deep) 0%, var(--ink) 100%);
+    color: #dce6f5;
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    padding: 1.25rem 0;
+    /* shelf-divider motif: faint horizontal rack lines */
+    background-image:
+        linear-gradient(180deg, var(--steel-deep) 0%, var(--ink) 100%),
+        repeating-linear-gradient(to bottom, rgba(255,255,255,0.05) 0, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 64px);
+    background-blend-mode: normal;
+    z-index: 1030;
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #fff;
+    padding: 0 1.25rem 1.25rem 1.25rem;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+    margin-bottom: 0.75rem;
+}
+.sidebar-brand i { color: var(--amber); font-size: 1.4rem; }
+.sidebar-brand strong { font-weight: 700; }
+
+.sidebar-nav {
+    list-style: none;
+    padding: 0 0.75rem;
+    margin: 0;
+    flex: 1;
+}
+.sidebar-nav a {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #b9c9e2;
+    padding: 0.65rem 0.85rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    font-size: 0.92rem;
+    margin-bottom: 0.15rem;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.sidebar-nav a i { font-size: 1.05rem; width: 1.2rem; text-align: center; }
+.sidebar-nav a:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.sidebar-nav a.active {
+    background: var(--amber);
+    color: #1a1200;
+    font-weight: 600;
+}
+
+.sidebar-footer {
+    padding: 0.75rem 1.25rem 0 1.25rem;
+    border-top: 1px solid rgba(255,255,255,0.12);
+}
+.sidebar-footer .btn { color: #dce6f5; border-color: rgba(255,255,255,0.25); }
+.sidebar-footer .btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+.mobile-topbar {
+    display: none;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+}
+
+.app-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.app-footer {
+    color: var(--text-secondary);
+    border-top: 1px solid var(--border);
+}
+
+@media (max-width: 991.98px) {
+    .sidebar {
+        position: fixed;
+        left: -100%;
+        top: 0;
+        transition: left 0.25s ease;
+        box-shadow: 0 0 30px rgba(0,0,0,0.3);
+    }
+    .sidebar.open { left: 0; }
+    .mobile-topbar { display: flex; }
+}
+
+/* ---------------------------------------------------------------------
+   Hero
+   --------------------------------------------------------------------- */
+.hero-section {
+    background: linear-gradient(135deg, var(--steel-light) 0%, var(--surface) 70%);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    padding: 2.5rem;
+}
+.hero-icon {
+    font-size: 11rem;
+    color: var(--steel);
+    opacity: 0.18;
+}
+
+/* ---------------------------------------------------------------------
+   Cards
+   --------------------------------------------------------------------- */
+.app-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.85rem;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+}
+
+.ai-card {
+    border-left: 4px solid var(--amber);
+}
+
+.stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--steel);
+    border-radius: 0.75rem;
+    padding: 1rem 1.15rem;
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    height: 100%;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.04);
+}
+.stat-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 0.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+.stat-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+.stat-label {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.feature-item {
+    padding: 0.35rem 0;
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+}
+.feature-item i { margin-right: 0.5rem; }
+
+/* ---------------------------------------------------------------------
+   Upload / drop zone
+   --------------------------------------------------------------------- */
+.drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 0.75rem;
+    padding: 2.25rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    background: var(--steel-light);
+}
+.drop-zone-active, .drop-zone:hover {
+    border-color: var(--steel);
+    background: rgba(44, 82, 130, 0.08);
+}
+.format-sample {
+    background: var(--steel-light);
+    border-radius: 0.5rem;
+    padding: 0.85rem;
+    font-size: 0.78rem;
+    color: var(--ink);
+    white-space: pre-wrap;
+    border: 1px solid var(--border);
+}
+.rack-config-table input, .rack-config-table select { min-width: 70px; }
+
+/* ---------------------------------------------------------------------
+   Badges
+   --------------------------------------------------------------------- */
+.priority-badge.priority-high { background: #fed7d7; color: #822727; }
+.priority-badge.priority-medium { background: #feebc8; color: #7b341e; }
+.priority-badge.priority-low { background: #c6f6d5; color: #22543d; }
+
+.status-badge.status-allocated { background: #c6f6d5; color: #22543d; }
+.status-badge.status-partial { background: #feebc8; color: #7b341e; }
+.status-badge.status-unallocated { background: #fed7d7; color: #822727; }
+
+.algo-choice {
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+}
+
+/* ---------------------------------------------------------------------
+   Heatmap
+   --------------------------------------------------------------------- */
+.heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 0.6rem;
+}
+.heatmap-cell {
+    border-radius: 0.5rem;
+    padding: 0.85rem 0.6rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--ink);
+    border: 1px solid var(--border);
+}
+
+/* ---------------------------------------------------------------------
+   Loading overlay
+   --------------------------------------------------------------------- */
+.loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+.loading-box {
+    text-align: center;
+    color: #fff;
+}
+
+/* ---------------------------------------------------------------------
+   Misc
+   --------------------------------------------------------------------- */
+.page-header h2 { margin-bottom: 0.15rem; }
+.table > :not(caption) > * > * { vertical-align: middle; }
+pre.format-sample { margin-bottom: 0.75rem; }

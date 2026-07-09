@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | Smart Warehouse Allocation System{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4 d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h2><i class="bi bi-speedometer2 text-primary"></i> Dashboard</h2>
+        <p class="text-secondary mb-0">Dataset: <strong>{{ dataset.filename }}</strong> &middot; Uploaded {{ dataset.upload_time.strftime('%Y-%m-%d %H:%M') }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('compare', dataset_id=dataset.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-bar-chart-steps"></i> Compare Algorithms
+        </a>
+        <a href="{{ url_for('upload') }}" class="btn btn-outline-primary">
+            <i class="bi bi-plus-circle"></i> New Upload
+        </a>
+    </div>
+</div>
+
+<!-- Stat cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-box-seam"></i></div>
+            <div><div class="stat-value">{{ dataset.valid_row_count }}</div><div class="stat-label">Valid Products</div></div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-icon bg-danger-subtle text-danger"><i class="bi bi-exclamation-octagon"></i></div>
+            <div><div class="stat-value">{{ dataset.error_row_count }}</div><div class="stat-label">Invalid Rows</div></div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-icon bg-warning-subtle text-warning"><i class="bi bi-grid-3x3-gap"></i></div>
+            <div><div class="stat-value">{{ racks|length }}</div><div class="stat-label">Active Racks</div></div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-graph-up-arrow"></i></div>
+            <div><div class="stat-value">{{ "%.1f"|format(latest_run.space_utilization) if latest_run else "--" }}{{ "%" if latest_run }}</div><div class="stat-label">Last Run Utilization</div></div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- AI Recommendation -->
+    <div class="col-lg-5">
+        <div class="card app-card h-100 ai-card">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-stars text-warning"></i> AI Recommendation</h5>
+                {% if recommendation.recommended_algorithm %}
+                <p class="mb-1">Best Strategy:
+                    <span class="badge bg-primary">{{ algorithms.get(recommendation.recommended_algorithm) }}</span>
+                </p>
+                <p class="small text-secondary">{{ recommendation.reason }}</p>
+                <div class="d-flex justify-content-between small mb-2">
+                    <span>Expected Utilization</span><strong>{{ recommendation.expected_utilization }}%</strong>
+                </div>
+                <div class="progress mb-3" style="height:8px;">
+                    <div class="progress-bar bg-warning" style="width: {{ recommendation.expected_utilization }}%"></div>
+                </div>
+                <p class="small fw-semibold mb-1"><i class="bi bi-exclamation-triangle text-danger"></i> Potential Bottlenecks</p>
+                <ul class="small text-secondary mb-3">
+                    {% for b in recommendation.bottlenecks %}<li>{{ b }}</li>{% endfor %}
+                </ul>
+                <p class="small fw-semibold mb-1"><i class="bi bi-graph-up text-info"></i> Future Prediction</p>
+                <p class="small text-secondary">{{ recommendation.future_prediction }}</p>
+                {% else %}
+                <p class="text-secondary">{{ recommendation.reason }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Run allocation -->
+    <div class="col-lg-7">
+        <div class="card app-card h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="bi bi-play-circle text-primary"></i> Run Allocation</h5>
+                <form method="POST" action="{{ url_for('allocate', dataset_id=dataset.id) }}" id="allocateForm">
+                    <label class="form-label small fw-semibold">Choose Allocation Strategy</label>
+                    <div class="row g-2 mb-3">
+                        {% for key, name in algorithms.items() %}
+                        <div class="col-md-6">
+                            <div class="form-check algo-choice">
+                                <input class="form-check-input" type="radio" name="algorithm" id="algo_{{ key }}" value="{{ key }}"
+                                    {{ 'checked' if key == recommendation.recommended_algorithm else '' }}>
+                                <label class="form-check-label" for="algo_{{ key }}">
+                                    {{ name }}
+                                    {% if key == recommendation.recommended_algorithm %}
+                                    <span class="badge bg-warning-subtle text-warning-emphasis ms-1">AI Pick</span>
+                                    {% endif %}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100" {{ 'disabled' if dataset.valid_row_count == 0 or racks|length == 0 }}>
+                        <i class="bi bi-lightning-charge"></i> Run Allocation
+                    </button>
+                    {% if racks|length == 0 %}
+                    <p class="text-danger small mt-2 mb-0">No active racks configured. Please enable at least one rack in Upload &rarr; Warehouse Configuration.</p>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dataset preview table -->
+<div class="card app-card mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h5 class="card-title mb-0"><i class="bi bi-table text-primary"></i> Dataset Preview</h5>
+            <input type="text" class="form-control form-control-sm w-auto" id="productSearch" placeholder="Search products...">
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle sortable-table" id="productTable">
+                <thead>
+                    <tr>
+                        <th data-sort="string">Product ID</th>
+                        <th data-sort="string">Name</th>
+                        <th data-sort="number">L</th>
+                        <th data-sort="number">W</th>
+                        <th data-sort="number">H</th>
+                        <th data-sort="number">Weight</th>
+                        <th data-sort="string">Priority</th>
+                        <th data-sort="string">Storage</th>
+                        <th data-sort="string">Fragile</th>
+                        <th data-sort="string">Temp Req.</th>
+                        <th data-sort="number">Qty</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in products %}
+                    <tr>
+                        <td>{{ p.product_id }}</td>
+                        <td>{{ p.product_name }}</td>
+                        <td>{{ p.length }}</td>
+                        <td>{{ p.width }}</td>
+                        <td>{{ p.height }}</td>
+                        <td>{{ p.weight }}</td>
+                        <td><span class="badge priority-badge priority-{{ p.priority|lower }}">{{ p.priority }}</span></td>
+                        <td>{{ p.storage_type }}</td>
+                        <td>{{ p.fragile }}</td>
+                        <td>{{ p.temperature_requirement }}</td>
+                        <td>{{ p.quantity }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <nav>
+            <ul class="pagination pagination-sm justify-content-end" id="productPagination"></ul>
+        </nav>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card app-card h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-pie-chart text-primary"></i> Priority Distribution</h6>
+                <canvas id="priorityChart" height="220"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card app-card h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-bar-chart text-primary"></i> Storage Type Breakdown</h6>
+                <canvas id="storageChart" height="220"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card app-card h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-grid-3x3-gap text-primary"></i> Rack Capacity Overview</h6>
+                <canvas id="rackCapacityChart" height="220"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const productData = {{ products|tojson }};
+const rackData = {{ racks|tojson }};
+
+document.addEventListener('DOMContentLoaded', function () {
+    initSortableSearchableTable('productTable', 'productSearch', 'productPagination', 8);
+
+    // Priority distribution pie chart
+    const priorityCounts = {High: 0, Medium: 0, Low: 0};
+    productData.forEach(p => { priorityCounts[p.priority] = (priorityCounts[p.priority] || 0) + p.quantity; });
+    new Chart(document.getElementById('priorityChart'), {
+        type: 'pie',
+        data: {
+            labels: Object.keys(priorityCounts),
+            datasets: [{ data: Object.values(priorityCounts), backgroundColor: ['#e53e3e', '#dd6b20', '#38a169'] }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    // Storage type bar chart
+    const storageCounts = {};
+    productData.forEach(p => { storageCounts[p.storage_type] = (storageCounts[p.storage_type] || 0) + p.quantity; });
+    new Chart(document.getElementById('storageChart'), {
+        type: 'bar',
+        data: {
+            labels: Object.keys(storageCounts),
+            datasets: [{ label: 'Units', data: Object.values(storageCounts), backgroundColor: '#3182ce' }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+
+    // Rack capacity chart
+    new Chart(document.getElementById('rackCapacityChart'), {
+        type: 'bar',
+        data: {
+            labels: rackData.map(r => r.rack_id),
+            datasets: [{ label: 'Capacity (cm³)', data: rackData.map(r => r.volume), backgroundColor: '#805ad5' }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+});
+</script>
+{% endblock %}

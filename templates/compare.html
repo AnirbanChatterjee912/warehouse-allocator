@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Compare Algorithms | Smart Warehouse Allocation System{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <h2><i class="bi bi-bar-chart-steps text-primary"></i> Compare Algorithms</h2>
+    <p class="text-secondary mb-0">Dataset: <strong>{{ dataset.filename }}</strong> &mdash; all six strategies run live against the current warehouse configuration.</p>
+</div>
+
+{% if not comparison %}
+<div class="alert alert-info">No products or active racks available to compare. Please upload a dataset and configure at least one rack.</div>
+{% else %}
+
+<div class="card app-card mb-4">
+    <div class="card-body">
+        <h6 class="card-title"><i class="bi bi-bar-chart text-primary"></i> Space Utilization Comparison</h6>
+        <canvas id="compareChart" height="100"></canvas>
+    </div>
+</div>
+
+<div class="card app-card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle sortable-table" id="compareTable">
+                <thead>
+                    <tr>
+                        <th data-sort="string">Algorithm</th>
+                        <th data-sort="number">Space Util. %</th>
+                        <th data-sort="number">Avg Rack Util. %</th>
+                        <th data-sort="number">Weight Util. %</th>
+                        <th data-sort="number">Priority Score %</th>
+                        <th data-sort="number">Allocated</th>
+                        <th data-sort="number">Unallocated</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in comparison %}
+                    <tr class="{{ 'table-success' if c.space_utilization == (comparison|map(attribute='space_utilization')|max) }}">
+                        <td class="fw-semibold">{{ c.algorithm_name }}</td>
+                        <td>{{ "%.2f"|format(c.space_utilization) }}</td>
+                        <td>{{ "%.2f"|format(c.avg_rack_utilization) }}</td>
+                        <td>{{ "%.2f"|format(c.weight_utilization) }}</td>
+                        <td>{{ "%.2f"|format(c.priority_score) }}</td>
+                        <td>{{ c.allocated_products }}</td>
+                        <td>{{ c.unallocated_products }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+{% if comparison %}
+const compareData = {{ comparison|tojson }};
+document.addEventListener('DOMContentLoaded', function () {
+    initSortableSearchableTable('compareTable', null, null, 20);
+
+    new Chart(document.getElementById('compareChart'), {
+        type: 'bar',
+        data: {
+            labels: compareData.map(c => c.algorithm_name),
+            datasets: [
+                { label: 'Space Utilization %', data: compareData.map(c => c.space_utilization), backgroundColor: '#3182ce' },
+                { label: 'Weight Utilization %', data: compareData.map(c => c.weight_utilization), backgroundColor: '#805ad5' },
+                { label: 'Priority Score %', data: compareData.map(c => c.priority_score), backgroundColor: '#38a169' }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'bottom' } },
+            scales: { y: { beginAtZero: true, max: 100 } }
+        }
+    });
+});
+{% endif %}
+</script>
+{% endblock %}

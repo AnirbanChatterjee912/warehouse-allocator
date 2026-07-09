@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}Allocation Result | Smart Warehouse Allocation System{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4 d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h2><i class="bi bi-check2-square text-primary"></i> Allocation Result</h2>
+        <p class="text-secondary mb-0">
+            Algorithm: <strong>{{ algorithms.get(run.algorithm, run.algorithm) }}</strong> &middot;
+            Dataset: <strong>{{ dataset.filename }}</strong> &middot;
+            Run: {{ run.run_time.strftime('%Y-%m-%d %H:%M:%S') }}
+        </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('export_csv', run_id=run.id) }}" class="btn btn-outline-success">
+            <i class="bi bi-filetype-csv"></i> Download CSV
+        </a>
+        <a href="{{ url_for('export_pdf', run_id=run.id) }}" class="btn btn-outline-danger">
+            <i class="bi bi-filetype-pdf"></i> Download PDF Report
+        </a>
+        <a href="{{ url_for('compare', dataset_id=dataset.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-bar-chart-steps"></i> Compare Algorithms
+        </a>
+    </div>
+</div>
+
+<!-- Stat cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-icon bg-primary-subtle text-primary"><i class="bi bi-percent"></i></div>
+            <div><div class="stat-value">{{ "%.1f"|format(run.space_utilization) }}%</div><div class="stat-label">Space Utilization</div></div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-icon bg-success-subtle text-success"><i class="bi bi-check-circle"></i></div>
+            <div><div class="stat-value">{{ run.allocated_products }}</div><div class="stat-label">Fully Allocated</div></div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-icon bg-danger-subtle text-danger"><i class="bi bi-x-circle"></i></div>
+            <div><div class="stat-value">{{ run.unallocated_products }}</div><div class="stat-label">Unallocated</div></div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="stat-card">
+            <div class="stat-icon bg-info-subtle text-info"><i class="bi bi-speedometer"></i></div>
+            <div><div class="stat-value">{{ "%.1f"|format(run.weight_utilization) }}%</div><div class="stat-label">Weight Utilization</div></div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card app-card h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-clipboard-data text-primary"></i> Optimization Statistics</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr><td>Total Warehouse Volume</td><td class="text-end fw-semibold">{{ "{:,.2f}".format(run.total_volume) }} cm³</td></tr>
+                            <tr><td>Occupied Volume</td><td class="text-end fw-semibold">{{ "{:,.2f}".format(run.occupied_volume) }} cm³</td></tr>
+                            <tr><td>Unused Volume</td><td class="text-end fw-semibold">{{ "{:,.2f}".format(run.unused_volume) }} cm³</td></tr>
+                            <tr><td>Average Rack Utilization</td><td class="text-end fw-semibold">{{ "%.2f"|format(run.avg_rack_utilization) }}%</td></tr>
+                            <tr><td>Priority Allocation Score</td><td class="text-end fw-semibold">{{ "%.2f"|format(run.priority_score) }}%</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card app-card h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-pie-chart text-primary"></i> Space Utilization</h6>
+                <canvas id="spaceUtilChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card app-card h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-bar-chart text-primary"></i> Rack Usage</h6>
+                <canvas id="rackUsageChart" height="230"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card app-card h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-grid-3x3-gap-fill text-primary"></i> Warehouse Occupancy Heatmap</h6>
+                <div id="heatmapContainer" class="heatmap-grid"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recommendations -->
+<div class="card app-card mb-4 ai-card">
+    <div class="card-body">
+        <h6 class="card-title"><i class="bi bi-stars text-warning"></i> Recommendations</h6>
+        <p class="mb-1">AI Suggested Strategy for this dataset: <span class="badge bg-primary">{{ algorithms.get(ai.recommended_algorithm, 'N/A') }}</span></p>
+        <p class="small text-secondary mb-2">{{ ai.reason }}</p>
+        <ul class="small text-secondary mb-0">
+            {% for b in ai.bottlenecks %}<li>{{ b }}</li>{% endfor %}
+        </ul>
+    </div>
+</div>
+
+<!-- Detailed result table -->
+<div class="card app-card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h5 class="card-title mb-0"><i class="bi bi-table text-primary"></i> Rack Assignment Detail</h5>
+            <input type="text" class="form-control form-control-sm w-auto" id="resultSearch" placeholder="Search results...">
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle sortable-table" id="resultTable">
+                <thead>
+                    <tr>
+                        <th data-sort="string">Product ID</th>
+                        <th data-sort="string">Name</th>
+                        <th data-sort="string">Assigned Rack</th>
+                        <th data-sort="number">Allocated Qty</th>
+                        <th data-sort="number">Total Qty</th>
+                        <th data-sort="string">Priority</th>
+                        <th data-sort="string">Storage Type</th>
+                        <th data-sort="string">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in results %}
+                    <tr>
+                        <td>{{ r.product_id }}</td>
+                        <td>{{ r.product_name }}</td>
+                        <td>{{ r.rack_id or "—" }}</td>
+                        <td>{{ r.allocated_quantity }}</td>
+                        <td>{{ r.total_quantity }}</td>
+                        <td><span class="badge priority-badge priority-{{ r.priority|lower }}">{{ r.priority }}</span></td>
+                        <td>{{ r.storage_type }}</td>
+                        <td>
+                            <span class="badge status-badge status-{{ r.status|lower }}">{{ r.status }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <nav>
+            <ul class="pagination pagination-sm justify-content-end" id="resultPagination"></ul>
+        </nav>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    initSortableSearchableTable('resultTable', 'resultSearch', 'resultPagination', 8);
+
+    // Space utilization donut
+    new Chart(document.getElementById('spaceUtilChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Occupied', 'Unused'],
+            datasets: [{
+                data: [{{ run.occupied_volume }}, {{ run.unused_volume }}],
+                backgroundColor: ['#3182ce', '#e2e8f0']
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    // Rack usage bar chart
+    const rackBreakdown = {{ rack_breakdown.keys()|list|tojson }};
+    const rackUnits = {{ rack_breakdown.values()|map('length')|list|tojson }};
+    new Chart(document.getElementById('rackUsageChart'), {
+        type: 'bar',
+        data: {
+            labels: rackBreakdown,
+            datasets: [{ label: 'Products Assigned', data: rackUnits, backgroundColor: '#38a169' }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+
+    // Heatmap of occupancy (built from rack breakdown proportions)
+    const heatmapContainer = document.getElementById('heatmapContainer');
+    const totalRacks = rackBreakdown.length || 1;
+    const maxUnits = Math.max(1, ...rackUnits);
+    rackBreakdown.forEach((rackId, i) => {
+        const intensity = rackUnits[i] / maxUnits;
+        const cell = document.createElement('div');
+        cell.className = 'heatmap-cell';
+        cell.style.backgroundColor = `rgba(49, 130, 206, ${0.15 + intensity * 0.75})`;
+        cell.innerHTML = `<strong>${rackId}</strong><br><span>${rackUnits[i]} item(s)</span>`;
+        heatmapContainer.appendChild(cell);
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Upload Dataset | Smart Warehouse Allocation System{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <h2><i class="bi bi-cloud-upload text-primary"></i> Upload Dataset</h2>
+    <p class="text-secondary">Upload a plain-text (.txt) product dataset. Every row is validated automatically.</p>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card app-card h-100">
+            <div class="card-body">
+                <h5 class="card-title mb-3"><i class="bi bi-file-earmark-arrow-up text-primary"></i> Dataset File</h5>
+
+                <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                    <div id="dropZone" class="drop-zone mb-3">
+                        <i class="bi bi-cloud-arrow-up display-4 text-primary"></i>
+                        <p class="mb-1 fw-semibold">Drag &amp; drop your .txt file here</p>
+                        <p class="text-secondary small mb-2">or click to browse</p>
+                        <input type="file" name="dataset_file" id="fileInput" accept=".txt" hidden required>
+                        <span id="fileNameLabel" class="badge bg-primary-subtle text-primary-emphasis d-none"></span>
+                    </div>
+
+                    <div class="progress mb-3 d-none" id="uploadProgressWrap" style="height: 8px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" id="uploadProgressBar" style="width: 0%"></div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100" id="uploadSubmitBtn">
+                        <i class="bi bi-upload"></i> Upload &amp; Validate
+                    </button>
+                </form>
+
+                <hr>
+                <h6 class="fw-semibold"><i class="bi bi-list-columns"></i> Expected Format (11 comma separated fields)</h6>
+                <pre class="format-sample">Product ID, Product Name, Length, Width, Height, Weight,
+Priority, Storage Type, Fragile(Yes/No), Temperature Requirement, Quantity
+
+P101,Chair,40,35,80,10,High,Normal,No,None,12
+P102,Glass,30,30,20,2,High,Fragile,Yes,None,15
+P103,Frozen Meat,50,40,25,18,Medium,Cold,No,Cold,8</pre>
+                <ul class="small text-secondary mb-0">
+                    <li>Priority: High, Medium, Low</li>
+                    <li>Storage Type: Normal, Fragile, Cold, Hazardous</li>
+                    <li>Fragile: Yes / No</li>
+                    <li>Temperature Requirement: None, Cold, Frozen</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card app-card h-100">
+            <div class="card-body">
+                <h5 class="card-title mb-3"><i class="bi bi-grid-3x3-gap text-primary"></i> Warehouse Configuration</h5>
+                <p class="text-secondary small">Adjust rack dimensions (cm), maximum weight (kg) and type. Inactive racks are excluded from allocation.</p>
+
+                <form method="POST" action="{{ url_for('update_racks') }}">
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle rack-config-table">
+                            <thead>
+                                <tr>
+                                    <th>Rack</th>
+                                    <th>L</th>
+                                    <th>W</th>
+                                    <th>H</th>
+                                    <th>Max Wt</th>
+                                    <th>Type</th>
+                                    <th>Active</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for rack in racks %}
+                                <tr>
+                                    <td>
+                                        <input type="hidden" name="rack_pk" value="{{ rack.id }}">
+                                        <span class="fw-semibold">{{ rack.rack_id }}</span>
+                                    </td>
+                                    <td><input type="number" step="1" min="1" class="form-control form-control-sm" name="length_{{ rack.id }}" value="{{ rack.length }}"></td>
+                                    <td><input type="number" step="1" min="1" class="form-control form-control-sm" name="width_{{ rack.id }}" value="{{ rack.width }}"></td>
+                                    <td><input type="number" step="1" min="1" class="form-control form-control-sm" name="height_{{ rack.id }}" value="{{ rack.height }}"></td>
+                                    <td><input type="number" step="1" min="1" class="form-control form-control-sm" name="max_weight_{{ rack.id }}" value="{{ rack.max_weight }}"></td>
+                                    <td>
+                                        <select class="form-select form-select-sm" name="rack_type_{{ rack.id }}">
+                                            {% for t in ['Normal','Fragile','Cold','Hazardous'] %}
+                                            <option value="{{ t }}" {{ 'selected' if rack.rack_type == t }}>{{ t }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td class="text-center">
+                                        <input type="checkbox" class="form-check-input" name="active_{{ rack.id }}" {{ 'checked' if rack.active }}>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="submit" class="btn btn-outline-primary w-100 mt-2">
+                        <i class="bi bi-save"></i> Save Warehouse Configuration
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileNameLabel = document.getElementById('fileNameLabel');
+    const uploadForm = document.getElementById('uploadForm');
+    const progressWrap = document.getElementById('uploadProgressWrap');
+    const progressBar = document.getElementById('uploadProgressBar');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    ['dragenter', 'dragover'].forEach(evt => {
+        dropZone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            dropZone.classList.add('drop-zone-active');
+        });
+    });
+    ['dragleave', 'drop'].forEach(evt => {
+        dropZone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('drop-zone-active');
+        });
+    });
+    dropZone.addEventListener('drop', (e) => {
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            showFileName();
+        }
+    });
+    fileInput.addEventListener('change', showFileName);
+
+    function showFileName() {
+        if (fileInput.files.length) {
+            fileNameLabel.textContent = fileInput.files[0].name;
+            fileNameLabel.classList.remove('d-none');
+        }
+    }
+
+    uploadForm.addEventListener('submit', function () {
+        progressWrap.classList.remove('d-none');
+        let pct = 0;
+        const interval = setInterval(() => {
+            pct = Math.min(pct + Math.random() * 20, 90);
+            progressBar.style.width = pct + '%';
+        }, 150);
+        window.addEventListener('beforeunload', () => clearInterval(interval));
+        showLoadingOverlay();
+    });
+});
+</script>
+{% endblock %}
